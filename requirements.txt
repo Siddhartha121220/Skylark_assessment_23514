@@ -1,0 +1,5 @@
+openai>=1.50.0
+requests>=2.31.0
+python-dotenv>=1.0.1
+streamlit>=1.38.0
+python-dateutil>=2.9.0
