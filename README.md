@@ -37,6 +37,10 @@ manual column-ID mapping step is needed after the token is created.
 
 ## Setup
 
+> Setting up the Monday.com boards themselves (column types, structure, importing your CSVs) is
+> a prerequisite covered separately below in **[Monday.com board setup guide](#mondaycom-board-setup-guide)**.
+> The steps here assume the two boards already exist and you just need to point the app at them.
+
 ### 1. Install dependencies
 
 ```bash
@@ -83,6 +87,298 @@ streamlit run app.py
 
 Opens at `http://localhost:8501`. If either secret is missing, the app shows a setup-instructions
 screen instead of crashing.
+
+## Monday.com board setup guide
+
+<details>
+<summary><strong>Click to expand — full step-by-step guide to building the two boards from scratch with the recommended column types</strong></summary>
+
+> **How this relates to the boards this app actually talks to:** the app was built and tested
+> against boards that already existed for this assignment (Monday board names
+> `Work_Order_Tracker Data` and `Deal funnel Data`, discovered live via `list_boards.py`), whose
+> column titles and types don't exactly match the structure below (e.g. their `Sector` is a
+> Status column rather than Dropdown, `Deal Stage` uses lettered stages A–O, there's no
+> `Weighted Value` formula column, etc. — run `list_boards.py` to see the exact live schema).
+> This guide is the **recommended structure for setting up the two boards cleanly from a blank
+> workspace** — useful if you're standing this up fresh with your own CSVs. If you follow it,
+> update the column-title mappings in `config.py`'s `WORK_ORDERS_SCHEMA` / `DEALS_SCHEMA`
+> `fields` dicts to match the column titles you actually created (`config.py` matches by column
+> *title*, not rigid structure — see its docstring — so that's the only code change needed).
+
+### Board 1 — Pipeline
+
+#### Step 1 — Create the board
+
+Create a new board and name it **Sales Pipeline**. Don't import the Excel yet — build the
+column structure first.
+
+#### Step 2 — Keep the first column
+
+Monday automatically gives you an Item column. Rename it to **Opportunity Name** (type:
+Name/Item). It should contain values like `ABC Energy Project`, `XYZ Power Expansion`, `Tata
+Solar Deal`.
+
+#### Step 3 — Add these columns, in order
+
+| # | Column | Monday type |
+|---|---|---|
+| 1 | Opportunity Name | Name |
+| 2 | Customer | Text |
+| 3 | Sector | Dropdown |
+| 4 | Sales Owner | People |
+| 5 | Deal Stage | Status |
+| 6 | Deal Value | Numbers |
+| 7 | Probability | Numbers |
+| 8 | Weighted Value | Formula |
+| 9 | Expected Close Date | Date |
+| 10 | Quarter | Dropdown |
+| 11 | Region | Dropdown |
+| 12 | Lead Source | Dropdown |
+| 13 | Last Activity | Date |
+| 14 | Next Action | Long Text |
+| 15 | Notes | Long Text |
+
+Add these from the **+** button (Column Center) beside the last column.
+
+#### Step 4 — Configure Sector
+
+Click **Sector → Settings/Edit labels** and create: `Energy`, `Manufacturing`, `Technology`,
+`Healthcare`, `Finance`, `Infrastructure`, `Government`, `Other`.
+
+This must be a **Dropdown**, not Text — a Dropdown restricts values to a predefined label set,
+so a later query like "how is our pipeline looking for Energy?" can reliably filter on
+`Sector = Energy` instead of fighting free-text variants.
+
+#### Step 5 — Configure Deal Stage
+
+Use a **Status** column (not Dropdown — Deal Stage represents the *state* of the opportunity).
+Name it **Deal Stage** with labels: `Lead`, `Qualified`, `Discovery`, `Proposal`, `Negotiation`,
+`Contract`, `Won`, `Lost`.
+
+#### Step 6 — Deal Value
+
+Add a **Numbers** column named **Deal Value**, currency set to match your data (e.g. ₹). Numbers
+columns support built-in sum/average/min/max/count, so the board itself can surface a running
+"Total Pipeline" figure.
+
+#### Step 7 — Probability
+
+Add another **Numbers** column named **Probability**. Store raw values (`20`, `40`, `60`, `80`,
+`100`) rather than strings like `"20%"`, then set the column's display format to percentage.
+
+#### Step 8 — Weighted Value
+
+Add a **Formula** column named **Weighted Value**:
+
+```
+{Deal Value} * {Probability} / 100
+```
+
+Example: Deal Value = ₹50,00,000, Probability = 60 → Weighted Value = ₹30,00,000.
+
+#### Step 9 — Expected Close Date
+
+Add a **Date** column named **Expected Close Date**. Make sure source dates are in a real date
+format before import — Monday's Excel importer expects a valid date format and recommends ISO
+(`2021-10-23`).
+
+#### Step 10 — Quarter
+
+Add a **Dropdown** (not Text) named **Quarter** with labels `Q1`, `Q2`, `Q3`, `Q4`.
+
+#### Step 11 — Region
+
+Add a **Dropdown** named **Region**: `North`, `South`, `East`, `West`, `International` (adjust
+to your actual business geography).
+
+#### Step 12 — Lead Source
+
+Add a **Dropdown** named **Lead Source**: `Website`, `Referral`, `Cold Outreach`, `Partner`,
+`Existing Customer`, `Event`, `Other` (adjust to match your data).
+
+#### Pipeline board — final structure
+
+```
+Opportunity Name   ← NAME
+Customer           ← TEXT
+Sector             ← DROPDOWN
+Sales Owner        ← PEOPLE
+Deal Stage         ← STATUS
+Deal Value         ← NUMBERS
+Probability        ← NUMBERS
+Weighted Value     ← FORMULA
+Expected Close Date← DATE
+Quarter            ← DROPDOWN
+Region             ← DROPDOWN
+Lead Source        ← DROPDOWN
+Last Activity      ← DATE
+Next Action        ← LONG TEXT
+Notes              ← LONG TEXT
+```
+
+### Board 2 — Work Orders
+
+Create a second board named **Work Orders**. Again, build the column structure before
+importing.
+
+#### Step 1 — First column
+
+Rename the Item column to **Work Order** (e.g. `WO-001`, `WO-002`, `WO-003`).
+
+#### Step 2 — Add these columns
+
+| # | Column | Monday type |
+|---|---|---|
+| 1 | Work Order | Name |
+| 2 | Customer | Text |
+| 3 | Project | Text |
+| 4 | Sector | Dropdown |
+| 5 | PO Number | Text |
+| 6 | PO Date | Date |
+| 7 | Quantity as per PO | Numbers |
+| 8 | Quantity Delivered | Numbers |
+| 9 | Balance Quantity | Formula |
+| 10 | Unit Price | Numbers |
+| 11 | PO Value | Numbers |
+| 12 | Work Order Status | Status |
+| 13 | Delivery Status | Status |
+| 14 | Planned Delivery Date | Date |
+| 15 | Actual Delivery Date | Date |
+| 16 | Owner | People |
+| 17 | Remarks | Long Text |
+
+#### ⚠️ Important — "Quantity as per PO" and "Quantity Delivered"
+
+Both must be **Numbers**, never Text or Dropdown — they need to support arithmetic (e.g.
+Quantity as per PO = 1,000, Quantity Delivered = 650 → Balance Quantity = 350).
+
+#### Step 4 — Balance Quantity
+
+Add a **Formula** column named **Balance Quantity**:
+
+```
+{Quantity as per PO} - {Quantity Delivered}
+```
+
+Monday calculates this automatically — don't import a value into it.
+
+#### Step 5 — Unit Price
+
+**Numbers** column, currency set to ₹ (or whatever matches your data).
+
+#### Step 6 — PO Value
+
+**Numbers** column. Import directly from Excel if present, or compute it as a **Formula**
+(`{Quantity as per PO} * {Unit Price}`) if not.
+
+#### Step 7 — Work Order Status
+
+**Status** column with labels: `Not Started`, `In Progress`, `On Hold`, `Completed`,
+`Cancelled`.
+
+#### Step 8 — Delivery Status
+
+A **separate Status** column (independent of Work Order Status) with labels: `Not Scheduled`,
+`Scheduled`, `Partially Delivered`, `Fully Delivered`, `Delayed`. These are intentionally
+independent — "Work Order = In Progress" and "Delivery = Partially Delivered" can both be true
+at once.
+
+#### Step 9 — Dates
+
+Use real **Date** columns (not Text) for PO Date, Planned Delivery Date, Actual Delivery Date.
+
+#### Step 10 — Sector
+
+Use the **same Dropdown label set** as the Pipeline board (`Energy`, `Manufacturing`,
+`Technology`, `Healthcare`, `Finance`, `Infrastructure`, `Government`, `Other`). Consistency
+here matters — if one board says `Energy` and another says `Energy Sector`, cross-board
+sector analysis gets unnecessarily hard.
+
+#### Work Orders board — final structure
+
+```
+Work Order              ← NAME
+Customer                ← TEXT
+Project                 ← TEXT
+Sector                  ← DROPDOWN
+PO Number               ← TEXT
+PO Date                 ← DATE
+Quantity as per PO      ← NUMBERS
+Quantity Delivered      ← NUMBERS
+Balance Quantity        ← FORMULA
+Unit Price              ← NUMBERS
+PO Value                ← NUMBERS
+Work Order Status       ← STATUS
+Delivery Status         ← STATUS
+Planned Delivery Date   ← DATE
+Actual Delivery Date    ← DATE
+Owner                   ← PEOPLE
+Remarks                 ← LONG TEXT
+```
+
+### Now import your Excel files
+
+Once the columns exist, use **New Item ▼ → Import Items → Excel** on each board. Monday will
+show your Excel columns and let you map each one to an existing board column — creating the
+columns beforehand (rather than importing blind) is what makes this mapping step reliable.
+
+**Pipeline mapping**
+
+| Excel column | → Monday column |
+|---|---|
+| Opportunity Name | Opportunity Name |
+| Customer | Customer |
+| Sector | Sector |
+| Sales Owner | Sales Owner |
+| Stage | Deal Stage |
+| Deal Value | Deal Value |
+| Probability | Probability |
+| Expected Close | Expected Close Date |
+| Quarter | Quarter |
+| Region | Region |
+| Lead Source | Lead Source |
+| Last Activity | Last Activity |
+| Next Action | Next Action |
+| Notes | Notes |
+
+**Work Order mapping**
+
+| Excel column | → Monday column |
+|---|---|
+| Work Order | Work Order |
+| Customer | Customer |
+| Project | Project |
+| Sector | Sector |
+| PO Number | PO Number |
+| PO Date | PO Date |
+| Quantities as per PO | Quantity as per PO |
+| Quantity Delivered | Quantity Delivered |
+| Unit Price | Unit Price |
+| PO Value | PO Value |
+| Work Order Status | Work Order Status |
+| Delivery Status | Delivery Status |
+| Planned Delivery Date | Planned Delivery Date |
+| Actual Delivery Date | Actual Delivery Date |
+| Owner | Owner |
+| Remarks | Remarks |
+
+Do **not** import a column for `Balance Quantity` — it's a Monday Formula column and calculates
+itself.
+
+**⚠️ During import**, when Monday asks *"Import unmapped columns?"* — leave this **off** unless
+you deliberately want a new column. Leaving it on can silently create duplicates like
+`Quantity as per PO 2` / `Quantity as per PO 3`.
+
+### After import — verify these
+
+**Pipeline:** Sector = Dropdown · Deal Stage = Status · Deal Value = Numbers · Probability =
+Numbers · Weighted Value = Formula · Expected Close Date = Date · Quarter = Dropdown
+
+**Work Orders:** Quantity as per PO = Numbers · Quantity Delivered = Numbers · Balance Quantity
+= Formula · PO Value = Numbers · Work Order Status = Status · Delivery Status = Status · PO
+Date / Planned Delivery Date / Actual Delivery Date = Date
+
+</details>
 
 ## Deployment (Streamlit Community Cloud)
 
