@@ -3,3 +3,8 @@
 __pycache__/
 *.pyc
 .streamlit/secrets.toml
+
+# Original assignment materials — kept locally for reference, not part of the shipped app
+# (the running app never reads these; see config.py/normalize.py docstrings).
+requirements.md
+*.xlsx
